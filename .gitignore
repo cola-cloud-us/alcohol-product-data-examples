@@ -1,0 +1,9 @@
+.cache/
+output/
+__pycache__/
+.venv/
+.ipynb_checkpoints/
+*.zip
+*.csv
+.env
+.env.*
