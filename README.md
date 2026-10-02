@@ -4,6 +4,8 @@ Evaluate barcode matches for a beer, wine or spirits catalog with **runnable Pyt
 
 You get code and documentation here. The source data stays at its [canonical sample archive](https://dyuie4zgfxmt6.cloudfront.net/samples/cola-sample-pack-v2.zip); the script downloads it locally for internal evaluation. No dataset, generated CSV, images or notebook outputs are distributed in this repository. See [data rights](#data-rights) before using the results elsewhere.
 
+To evaluate your own product list against current account-backed data, use the separate [customer UPC recipe](MATCH_YOUR_UPCS.md). It starts with a network-free dry run; explicit lookup uses an existing API key and at most ten requests.
+
 ## Run the barcode-matching example
 
 Python 3.10 or newer, using only the standard library. No API key, database, paid account or model call is required.
