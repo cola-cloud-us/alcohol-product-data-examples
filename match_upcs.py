@@ -87,6 +87,22 @@ def lookup(value, api_key, opener):
         return {"status": "invalid_response", "stop": True}
 
 
+
+def print_candidate_summary(value, result):
+    candidates = result["api_data"]["colas"]
+    brands = sorted({c["brand_name"] for c in candidates
+                     if isinstance(c.get("brand_name"), str) and c["brand_name"].strip()})
+    missing = sum(not isinstance(c.get("brand_name"), str) or not c["brand_name"].strip()
+                  for c in candidates)
+    # JSON quoting keeps source strings (including terminal control characters) literal.
+    print(f"{value}: {len(candidates)} candidate rows; distinct brand strings: "
+          f"{json.dumps(brands)}. Product identity is not verified.")
+    if len(brands) > 1:
+        print("  Multiple brand strings need review; differences do not establish separate brands or products.")
+    if missing:
+        print(f"  {missing} candidate row(s) lack a usable brand string; review the saved evidence.")
+
+
 def save_report(path, report):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".json.tmp")
@@ -139,6 +155,8 @@ def main(argv=None, *, opener=None, environ=None):
         report["request_count"] += 1
         report["results"].append({**item, **result})
         save_report(destination, report)
+        if result["status"] == "candidates_returned":
+            print_candidate_summary(item["input_upc"], result)
         if result["stop"]:
             print(f"Stopped after {report['request_count']} request(s): {result['status']}. "
                   "Partial report saved; no automatic retry.")

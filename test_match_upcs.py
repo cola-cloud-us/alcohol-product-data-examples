@@ -45,9 +45,11 @@ class CustomerRecipeTests(unittest.TestCase):
     def run_recipe(self, values, *flags, responses=(), env=None):
         self.csv.write_text('upc\n' + '\n'.join(values) + '\n')
         client = FakeHTTP(responses)
-        with contextlib.redirect_stdout(io.StringIO()):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
             status = recipe.main([str(self.csv), '--output-dir', str(self.out), *flags],
                                  opener=client, environ={} if env is None else env)
+        self.stdout = output.getvalue()
         return status, client, json.loads((self.out / 'report.json').read_text())
 
     def test_dry_run_even_with_key_and_ten_request_bound(self):
@@ -78,6 +80,21 @@ class CustomerRecipeTests(unittest.TestCase):
         self.assertEqual(client.requests[0].get_header('Authorization'), 'Bearer fake-secret')
         self.assertEqual(report['results'][0]['returned_record_count'], 2)
         self.assertNotIn('fake-secret', json.dumps(report))
+        self.assertNotIn('fake-secret', self.stdout)
+
+    def test_summary_counts_rows_and_distinct_strings_without_identity_claim(self):
+        value = barcode(1)
+        fixture = json.dumps({'data': {'colas': [{'brand_name': 'Synthetic A'},
+                                                {'brand_name': 'Synthetic A'},
+                                                {'brand_name': 'Synthetic B'},
+                                                {'brand_name': None}]}}).encode()
+        self.run_recipe([value], '--lookup', responses=[fixture], env={'COLA_API_KEY': 'fake-secret'})
+        self.assertIn(value + ': 4 candidate rows', self.stdout)
+        self.assertIn('distinct brand strings: ["Synthetic A", "Synthetic B"]', self.stdout)
+        self.assertIn('Multiple brand strings need review', self.stdout)
+        self.assertIn('Product identity is not verified', self.stdout)
+        self.assertIn('1 candidate row(s) lack a usable brand string', self.stdout)
+        self.assertNotIn('fake-secret', self.stdout)
 
     def test_lookup_requires_key_before_client_call(self):
         self.csv.write_text('upc\n' + barcode(1) + '\n')
@@ -123,6 +140,7 @@ class CustomerRecipeTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(report['results'][0]['status'], 'network_error')
         self.assertNotIn('fake-secret', json.dumps(report))
+        self.assertNotIn('fake-secret', self.stdout)
 
     def test_limit_cannot_exceed_ten(self):
         with self.assertRaises(ValueError):
