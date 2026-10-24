@@ -44,6 +44,38 @@ The default report is replaced on each run, including dry runs. Use a new local 
 python3 match_upcs.py /path/to/your-products.csv --lookup --limit 3 --output-dir output/my-evaluation
 ```
 
+## Read the evaluation brief
+
+Every run, including a dry run, also writes `brief.html` and `brief.md` beside `report.json`, and refreshes them after each request so a stopped run still has a readable summary. Open `brief.html` in a browser or print it to PDF; paste `brief.md` into a ticket or note. To rebuild both from a saved report without any network access:
+
+```sh
+python3 evaluation_brief.py output/my-evaluation/report.json
+```
+
+The brief reports, from the saved report only:
+
+- **Inputs:** CSV rows read, valid, rejected (with row numbers and reasons), exact duplicates, selected and deferred values.
+- **Results:** requests sent, inputs with candidates, with no candidates, failed, and not requested (dry run or after a stop); candidate rows returned, which are approval records rather than distinct products.
+- **Per input:** status, candidate-row count, distinct brand strings, flags for multiple or missing brand strings or a capped response, and up to 25 returned candidate rows (TTB ID, brand, product, class, approval date).
+- **Next actions** derived from those outcomes, such as how to continue a stopped run without repeating completed requests.
+- **Scope and limitations**, dated to the report's creation time, and links to public COLA Cloud references.
+
+Only `brand_name` is inspected for the summary. Other columns are displayed as returned and are not checked for presence or accuracy, and a barcode-only evaluation does not establish catalog completeness. A synthetic stopped run looks like this in Markdown:
+
+```text
+- Inputs: 6 CSV rows; 5 valid; 1 rejected; 1 exact duplicates; 4 selected; 0 deferred.
+- Results: 3 requests; 1 with candidates; 1 no candidates; 1 failed; 1 not requested.
+- Review: 3 candidate rows (approval records, not distinct products); 1 inputs with multiple brand strings; 1 rows without brand.
+
+| CSV record | Input | Status | Candidate rows | Distinct brand strings | Flags |
+| 2 | 000000000017 | Candidates returned | 3 | "Synthetic Ridge", "Synthetic Ridge Distilling" | Multiple brand strings; 1 row(s) without a brand string |
+| 3 | 000000000024 | No candidates returned (HTTP 404) |  |  |  |
+| 4 | 000000000031 | Request failed; run stopped (HTTP 429) |  |  |  |
+| 5 | 000000000048 | Not requested (run stopped earlier) |  |  |  |
+```
+
+The brief contains the same local input values and account-returned data as `report.json`; share it only as your terms allow. All source text is escaped. The HTML has no scripts or remote assets, and its content security policy blocks them. A Markdown viewer may still turn URL-like text from source data into links.
+
 ## Interpret the evidence
 
 The API tries the original string first. If it finds nothing, its bounded recovery can try the equivalent checksum-valid UPC-A / leading-zero EAN-13 spelling. The first nonempty result wins; it does **not** union every equivalent representation. The recipe displays a GTIN-14 comparison key but does not send that padded key or issue additional equivalent-form requests automatically. This endpoint exercise does not reproduce a full normalized-key warehouse benchmark.
@@ -61,7 +93,7 @@ This recipe ships no customer lists, licensed benchmark rows, internal export id
 ## Run the network-free tests
 
 ```sh
-python3 -m unittest -v test_match_upcs.py
+python3 -m unittest -v test_match_upcs.py test_evaluation_brief.py
 ```
 
-Fixtures use synthetic identifiers and fake HTTP responses. They verify the dry-run boundary, request cap, string handling, multiple candidates, credential requirement, redirect refusal, partial failure reporting and absence of credentials in saved reports. They do not make live API calls or establish production endpoint performance.
+Fixtures use synthetic identifiers and fake HTTP responses. They verify the dry-run boundary, request cap, string handling, multiple candidates, credential requirement, redirect refusal, partial failure reporting and absence of credentials in saved reports. Brief tests cover dry-run, partial, no-candidate and capped outcomes, wording limits, escaping of hostile strings, and the absence of credentials, scripts and remote assets. They do not make live API calls or establish production endpoint performance.

@@ -10,6 +10,7 @@ from pathlib import Path
 import urllib.error
 import urllib.request
 
+from evaluation_brief import brand_summary, write_brief
 from workflow import normalize_gtin
 
 ENDPOINT = "https://app.colacloud.us/api/v1/barcode/"
@@ -90,10 +91,7 @@ def lookup(value, api_key, opener):
 
 def print_candidate_summary(value, result):
     candidates = result["api_data"]["colas"]
-    brands = sorted({c["brand_name"] for c in candidates
-                     if isinstance(c.get("brand_name"), str) and c["brand_name"].strip()})
-    missing = sum(not isinstance(c.get("brand_name"), str) or not c["brand_name"].strip()
-                  for c in candidates)
+    brands, missing = brand_summary(candidates)
     # JSON quoting keeps source strings (including terminal control characters) literal.
     print(f"{value}: {len(candidates)} candidate rows; distinct brand strings: "
           f"{json.dumps(brands)}. Product identity is not verified.")
@@ -108,6 +106,8 @@ def save_report(path, report):
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(report, indent=2) + "\n")
     temporary.replace(path)
+    # The brief is rebuilt from the same saved state, so a stopped run still has a readable summary.
+    write_brief(report, path.parent)
 
 
 def main(argv=None, *, opener=None, environ=None):
@@ -143,7 +143,7 @@ def main(argv=None, *, opener=None, environ=None):
     print(f"Selected {len(plan['selected'])} of {plan['unique_valid_strings']} unique valid strings.")
     for item in plan["selected"]:
         print(f"  {item['input_upc']} -> comparison GTIN-14 {item['gtin14']}")
-    print(f"Rejected {len(plan['rejected'])} rows; report: {destination}")
+    print(f"Rejected {len(plan['rejected'])} rows; report: {destination}; brief: {destination.parent / 'brief.html'}")
     if not args.lookup:
         print("Dry run: no network requests. Add --lookup only when ready to use account quota.")
         return 0
