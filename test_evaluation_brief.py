@@ -47,9 +47,19 @@ class EvaluationBriefTests(unittest.TestCase):
                           summary['selected'], summary['deferred'], summary['requests']), (14, 1, 1, 10, 2, 0))
         self.assertIn('Dry run (no requests sent)', self.html)
         self.assertIn('rerun with --lookup', self.html)
-        self.assertIn('up to 1,000 returned-record quota', self.html)
+        self.assertIn('up to 1,000 list-record quota', self.html)
         self.assertIn('2 distinct valid value(s) were deferred', self.md)
         self.assertNotIn('Candidates returned', self.html)
+
+    def test_custom_limit_explains_deferred_inputs_and_quota(self):
+        status, report = self.run_recipe([barcode(i) for i in range(1, 7)], '--limit', '3')
+        self.assertEqual(status, 0)
+        self.assertEqual(report['request_count'], 0)
+        for rendered in (self.html, self.md):
+            self.assertIn('3-request limit', rendered)
+            self.assertIn('3 distinct valid value(s) were deferred', rendered)
+            self.assertIn('up to 300 list-record quota', rendered)
+            self.assertNotIn('ten-request bound', rendered)
 
     def test_partial_run_separates_candidates_no_match_failure_and_unrequested(self):
         values = [barcode(i) for i in range(1, 5)]

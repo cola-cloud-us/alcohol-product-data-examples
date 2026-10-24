@@ -105,7 +105,7 @@ def next_actions(report, rows, s):
     if report["mode"] == "dry_run":
         actions.append(f"Review the selected values, then rerun with --lookup to send them. That run makes at most "
                        f"{s['selected']} request(s) and can consume up to {report['limits']['maximum_record_quota_for_plan']:,} "
-                       "returned-record quota. Use a new --output-dir to keep this dry run.")
+                       "list-record quota. Use a new --output-dir to keep this dry run.")
     if s["with_candidates"]:
         actions.append("For each input with candidates, compare brand and expression, age/flavor/finish, proof or ABV, "
                        "volume and pack configuration against your own product evidence. Mark any field you could not "
@@ -132,7 +132,8 @@ def next_actions(report, rows, s):
         actions.append("Fix rejected rows at the source export: keep barcodes as text with leading zeros. The recipe "
                        "does not repair values.")
     if s["deferred"]:
-        actions.append(f"{s['deferred']} distinct valid value(s) were deferred by the ten-request bound. Evaluate them "
+        actions.append(f"{s['deferred']} distinct valid value(s) were deferred by this run's "
+                       f"{report['limits']['maximum_requests']}-request limit. Evaluate them "
                        "in further small runs, or see plans for larger account-backed use.")
     return actions
 

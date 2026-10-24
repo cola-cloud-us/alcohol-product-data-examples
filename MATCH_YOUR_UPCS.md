@@ -4,6 +4,17 @@ Use a small set of products you know to evaluate the current COLA Cloud barcode 
 
 It uses Python 3.10+ and the standard library. The local validation stage needs no account or network. Lookup requires your existing `COLA_API_KEY` environment variable and an account with available API record quota. Do not put the key in the CSV, source code or a command-line argument.
 
+## Get the example code
+
+Clone this public repository and enter its directory:
+
+```sh
+git clone https://github.com/cola-cloud-us/alcohol-product-data-examples.git
+cd alcohol-product-data-examples
+```
+
+If you do not use Git, open the [repository home](https://github.com/cola-cloud-us/alcohol-product-data-examples), choose **Code → Download ZIP**, extract it, and open a terminal in the extracted directory.
+
 ## Prepare a CSV with text barcodes
 
 Export a file with a column named `upc`, one value per row. You can include your own SKU/name columns; the recipe does not send or copy them. Use `--column barcode` if your identifier column has another name.
@@ -34,7 +45,9 @@ After reviewing the dry run, load your existing API key into `COLA_API_KEY` thro
 python3 match_upcs.py /path/to/your-products.csv --lookup
 ```
 
-Use the same `--column` and `--limit` options as your dry run. Each request can return up to **100 records**, consuming returned-record quota; ten requests can therefore consume up to **1,000 records**. Actual results can be limited by remaining quota. Check [current plans](https://colacloud.us/pricing) and your available usage first. This is not a ten-record operation.
+Use the same `--column` and `--limit` options as your dry run. Each request can return up to **100 records**, consuming the **list records** quota shown on the pricing page; ten requests can therefore consume up to **1,000 list records**. Barcode lookup results use this meter, not detail views. Actual results can be limited by remaining quota. Check [current plans](https://colacloud.us/pricing) and your available usage first. This is not a ten-record operation.
+
+Free allows 10 API requests per minute. Wait at least a minute between full ten-request runs with the same key, and account for other API requests using that key. A smaller `--limit` reduces this run's request count; it does not bypass the rate limit. If a run stops with HTTP 429, wait for the limit to reset and use the brief's retry instructions to avoid repeating completed lookups.
 
 The fixed destination is `https://app.colacloud.us/api/v1/barcode/{input}`. Redirects are refused to keep credentials at that destination. Results are saved after each request. Successful responses print the input, candidate-row count and distinct returned brand strings; multiple strings and missing brands are flagged for review, without inferring product identity. A no-candidate HTTP 404 is recorded and processing continues; other HTTP errors, network failures or malformed responses stop the run with its partial report intact. The API's burst limit can return HTTP 429 even within a ten-request plan; the recipe stops and preserves completed results rather than retrying. There is no automatic retry, detail fetching or pagination. Repeating the command can consume quota again; this is not a resumable job.
 
