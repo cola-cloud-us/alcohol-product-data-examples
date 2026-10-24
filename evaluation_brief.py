@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 
 TRUST_LINKS = [
+    ("Terms of service", "https://colacloud.us/terms"),
+    ("Security practices", "https://docs.colacloud.us/trust/security"),
     ("Data provenance and dated coverage", "https://docs.colacloud.us/trust/data-provenance"),
     ("API authentication", "https://docs.colacloud.us/authentication"),
     ("Plans and record quota", "https://colacloud.us/pricing"),
