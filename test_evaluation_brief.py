@@ -68,8 +68,29 @@ class EvaluationBriefTests(unittest.TestCase):
                           summary['not_requested'], summary['candidate_rows']), (1, 1, 1, 1, 3))
         self.assertIn('Request failed; run stopped (HTTP 429)', self.html)
         self.assertIn('does not prove the product lacks an approval', self.html)
-        self.assertIn('put only the not-requested values in a new CSV', self.html)
+        actions = brief.next_actions(report, rows, summary)
+        self.assertIn(f'put only these value(s) in a new CSV and use a new --output-dir: {values[2]}, {values[3]}.',
+                      ' '.join(actions))
+        self.assertIn('1 selected value(s) were not requested', ' '.join(actions))
+        self.assertTrue(any(a.startswith('Diagnose the failed request (Request failed; run stopped (HTTP 429))')
+                            for a in actions))
         self.assertNotIn('sensitive body', self.html + self.md)
+
+    def test_sole_or_last_request_failure_is_retry_target_not_unrequested(self):
+        for values, responses in (([barcode(1)], [urllib.error.URLError('x')]),
+                                  ([barcode(1), barcode(2)],
+                                   [colas('Synthetic'), urllib.error.HTTPError('fixture', 503, 'b', {}, None)])):
+            with self.subTest(count=len(values)):
+                status, report = self.run_recipe(values, '--lookup', responses=responses)
+                self.assertEqual(status, 1)
+                rows = brief.build_rows(report)
+                actions = ' '.join(brief.next_actions(report, rows, brief.summarize(report, rows)))
+                self.assertIn('Diagnose the failed request', actions)
+                self.assertNotIn('not requested', actions)
+                self.assertIn(f'new --output-dir: {values[-1]}.', actions)
+                self.assertNotIn(values[0] + ',', actions)
+                if len(values) == 2:
+                    self.assertNotIn(values[0], actions)
 
     def test_all_no_candidates_never_claims_absence(self):
         errors = [urllib.error.HTTPError('fixture', 404, 'body', {}, None) for _ in range(2)]
@@ -123,6 +144,21 @@ class EvaluationBriefTests(unittest.TestCase):
         hrefs = re.findall(r'href="([^"]+)"', self.html)
         self.assertEqual(hrefs, [url for _, url in brief.TRUST_LINKS])
         self.assertIn('@media print', self.html)
+
+    def test_edited_report_cannot_break_markdown_table_or_html(self):
+        self.run_recipe([barcode(1)], '--lookup', responses=[colas('Synthetic')])
+        report = json.loads((self.out / 'report.json').read_text())
+        report['plan']['selected'][0]['input_upc'] = '1|2`<b>x</b>\n| 9 | injected |'
+        report['results'][0]['input_upc'] = report['plan']['selected'][0]['input_upc']
+        (self.out / 'report.json').write_text(json.dumps(report))
+        with contextlib.redirect_stdout(io.StringIO()):
+            brief.main([str(self.out / 'report.json')])
+        md_text = (self.out / 'brief.md').read_text()
+        table = [line for line in md_text.splitlines() if re.match(r'^\| \d+ \|', line)]
+        self.assertEqual(len(table), 1)
+        self.assertEqual(len(re.findall(r'(?<!\\)\|', table[0])), 7)
+        self.assertNotRegex(md_text, r'(?<!\\)<b>')
+        self.assertNotIn('<b>', (self.out / 'brief.html').read_text())
 
     def test_standalone_render_from_saved_report_is_offline_and_identical(self):
         self.run_recipe([barcode(1)], '--lookup', responses=[colas('Synthetic')])

@@ -114,10 +114,18 @@ def next_actions(report, rows, s):
     if s["no_candidates"]:
         actions.append("For inputs with no candidates, confirm the value in your own system and consider searching by "
                        "brand in the app. No candidates does not prove the product lacks an approval.")
-    if s["failed"] or (report["mode"] == "lookup" and s["not_requested"]):
-        actions.append("The run stopped before every selected value was requested. Rerunning the same CSV repeats "
-                       "completed requests and their quota use; to continue, put only the not-requested values in a "
-                       "new CSV and use a new --output-dir. Wait before retrying a rate limit (HTTP 429).")
+    failed = [r for r in rows if r["status"] not in ("candidates_returned", "no_candidates", "not_requested")]
+    unrequested = [r for r in rows if r["status"] == "not_requested"] if report["mode"] == "lookup" else []
+    if failed:
+        actions.append(f"Diagnose the failed request ({failed[0]['label']}) before retrying it: wait out a rate limit "
+                       "(HTTP 429), check the key and plan for HTTP 401/403, and check connectivity for network or "
+                       "unreadable responses.")
+    if unrequested:
+        actions.append(f"{len(unrequested)} selected value(s) were not requested because the run stopped or was interrupted.")
+    if failed or unrequested:
+        values = ", ".join(clean(r["input_upc"]) for r in failed + unrequested)
+        actions.append(f"To continue, put only these value(s) in a new CSV and use a new --output-dir: {values}. "
+                       "Rerunning the original CSV would repeat completed requests and their quota use.")
     if s["rejected_rows"]:
         actions.append("Fix rejected rows at the source export: keep barcodes as text with leading zeros. The recipe "
                        "does not repair values.")
@@ -259,7 +267,7 @@ def render_markdown(report):
     for row in rows:
         brands = ", ".join(json.dumps(b, ensure_ascii=False) for b in row["brands"])
         count = len(row["candidates"]) if row["status"] == "candidates_returned" else ""
-        out.append(f"| {int(row['csv_record'])} | `{clean(row['input_upc']).replace('`', '')}` | {md(row['label'])} | "
+        out.append(f"| {int(row['csv_record'])} | {md(row['input_upc'])} | {md(row['label'])} | "
                    f"{count} | {md(brands)} | {md('; '.join(row['flags']))} |")
     if report["plan"]["rejected"]:
         out += ["", "## Rejected rows", "", "| CSV record | Value | Reason |", "| --- | --- | --- |"]

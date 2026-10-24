@@ -68,10 +68,10 @@ Only `brand_name` is inspected for the summary. Other columns are displayed as r
 - Review: 3 candidate rows (approval records, not distinct products); 1 inputs with multiple brand strings; 1 rows without brand.
 
 | CSV record | Input | Status | Candidate rows | Distinct brand strings | Flags |
-| 2 | `000000000017` | Candidates returned | 3 | "Synthetic Ridge", "Synthetic Ridge Distilling" | Multiple brand strings; 1 row(s) without a brand string |
-| 3 | `000000000024` | No candidates returned (HTTP 404) |  |  |  |
-| 4 | `000000000031` | Request failed; run stopped (HTTP 429) |  |  |  |
-| 5 | `000000000048` | Not requested (run stopped earlier) |  |  |  |
+| 2 | 000000000017 | Candidates returned | 3 | "Synthetic Ridge", "Synthetic Ridge Distilling" | Multiple brand strings; 1 row(s) without a brand string |
+| 3 | 000000000024 | No candidates returned (HTTP 404) |  |  |  |
+| 4 | 000000000031 | Request failed; run stopped (HTTP 429) |  |  |  |
+| 5 | 000000000048 | Not requested (run stopped earlier) |  |  |  |
 ```
 
 The brief contains the same local input values and account-returned data as `report.json`; share it only as your terms allow. All source text is escaped. The HTML has no scripts or remote assets, and its content security policy blocks them. A Markdown viewer may still turn URL-like text from source data into links.
