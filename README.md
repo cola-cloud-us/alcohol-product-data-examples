@@ -8,7 +8,14 @@ To evaluate your own product list against current account-backed data, use the s
 
 ## Run the barcode-matching example
 
-Python 3.10 or newer, using only the standard library. No API key, database, paid account or model call is required.
+Python 3.10 or newer, using only the standard library. No API key, database, paid account or model call is required. First get the repository:
+
+```sh
+git clone https://github.com/cola-cloud-us/alcohol-product-data-examples.git
+cd alcohol-product-data-examples
+```
+
+Without Git, choose **Code → Download ZIP** on this repository, extract it, and open a terminal in the extracted directory. Then run:
 
 ```sh
 python3 workflow.py --archive .cache/cola-sample-pack-v2.zip --output output
